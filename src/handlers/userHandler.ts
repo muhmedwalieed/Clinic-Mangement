@@ -6,27 +6,7 @@ import CustomError from "../utils/customError";
 
 const Users = prisma.users;
 
-const isValidUsername = async (username: string) => {
-    const isUsed = await Users.findUnique({ where: { username } });
-    return isUsed ? false : true;
-};
-
-export const createUser = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
-    req.body.password = await hashPassword(process.env.DEF_USER_PASSWORD || "");
-    const validUsername = await isValidUsername(req.body.username);
-    if (!validUsername) {
-        const e = new CustomError(
-            "Username already exists. Please choose another one.",
-            409
-        );
-        next(e);
-        return;
-    }
-    delete req.body.role;
+const createUser = async (req: Request, res: Response) => {
     const user = await Users.create({
         data: req.body,
     });
@@ -37,43 +17,27 @@ export const createUser = async (
     });
 };
 
-export const login = async (req: Request, res: Response) => {
-    const { username, password } = req.body;
-    const user = await Users.findUnique({
-        where: { username },
-        select: {
-            id: true,
-            username: true,
-            isActive: true,
-            password: true,
-            userRole: true,
-        },
-    });
-    if (!user) {
-        res.status(401).json("Invalid username or password");
-        return;
-    }
-    const validPassowrd = await comparePasswords(password, user.password);
-    if (!validPassowrd) {
-        res.status(401).json("Invalid username or password");
-        return;
-    }
+const login = async (req: Request, res: Response) => {
+    const user = (req as any).user;
     const token = createJWT(user);
-    const { password: _, ...userWithoutPassword } = user;
     const data = {
-        status: "success",
         statusCode: 200,
         message: "user login success",
-        user: userWithoutPassword,
+        user: {
+            id: user.id,
+            username: user.username,
+            isActive: user.isActive,
+            userRole: user.userRole,
+        },
         token,
     };
     res.json({
-        success: "success",
+        status: "success",
         data,
     });
 };
 
-export const getUsers = async (req: Request, res: Response) => {
+const getUsers = async (req: Request, res: Response) => {
     const query = (req as any).validQuery;
 
     const users = await Users.findMany({
@@ -106,11 +70,7 @@ export const getUsers = async (req: Request, res: Response) => {
     });
 };
 
-export const getUser = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+const getUser = async (req: Request, res: Response, next: NextFunction) => {
     const id = req.params.userId;
     const user = await Users.findUnique({
         where: { id },
@@ -135,7 +95,7 @@ export const getUser = async (
     });
 };
 
-export const updateUser = async (req: Request, res: Response) => {
+const updateUser = async (req: Request, res: Response) => {
     const { firstName, lastName } = req.body;
     const id = (req as any).user.id;
     const user = await Users.update({
@@ -158,7 +118,7 @@ export const updateUser = async (req: Request, res: Response) => {
     res.json({ data: user });
 };
 
-export const updatePassword = async (req: Request, res: Response) => {
+const updatePassword = async (req: Request, res: Response) => {
     const id = (req as any).user.id;
     const { newPassword } = req.body;
     const password = await hashPassword(newPassword);
@@ -169,11 +129,21 @@ export const updatePassword = async (req: Request, res: Response) => {
     });
 };
 
-export const deleteUser = async (req: Request, res: Response) => {
+const deleteUser = async (req: Request, res: Response) => {
     const id = req.params.userId;
     await Users.delete({ where: { id } });
     res.json({
         status: "success",
         message: "deleted",
     });
+};
+
+export {
+    createUser,
+    login,
+    getUsers,
+    getUser,
+    updateUser,
+    updatePassword,
+    deleteUser,
 };

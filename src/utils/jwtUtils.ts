@@ -2,9 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import CustomError from "./customError";
 
-export const createJWT = (user: { id: string; username: string }) => {
+export const createJWT = (user: { id: string; username: string;userRole:string }) => {
     const token = jwt.sign(
-        { id: user.id, username: user.username },
+        { id: user.id, username: user.username ,userRole:user.userRole},
         process.env.JWT_SECRET || ""
     );
     return token;

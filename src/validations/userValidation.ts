@@ -1,8 +1,16 @@
 import { body, param, query } from "express-validator";
 import { USER_ROLES } from "@prisma/client";
 import { validatorInput } from "../middlewares/handleInputsErrors";
+import { filterValidData } from "../middlewares/filterValidDataMiddleware";
+import { Request, Response, NextFunction } from "express";
+
+const initValidData = (req: Request, res: Response, next: NextFunction) => {
+    req.body.validData = {};
+    next();
+};
 
 export const createUser = [
+    initValidData,
     body("username")
         .isString()
         .withMessage("Please provide a valid username.")
@@ -15,7 +23,12 @@ export const createUser = [
         .withMessage("Username must be at least 5 characters long.")
         .bail()
         .matches(/^[a-zA-Z0-9]+$/)
-        .withMessage("Username must contain only English letters and numbers."),
+        .withMessage("Username must contain only English letters and numbers.")
+        .bail()
+        .custom((value, { req }) => {
+            req.body.validData["username"] = value.trim().toLowerCase();
+            return true;
+        }),
     body("role")
         .notEmpty()
         .withMessage("Please select a user role.")
@@ -27,13 +40,15 @@ export const createUser = [
                     "Invalid role selected. Please choose a valid role."
                 );
             }
-            req.body.userRole = upperRole;
+            req.body.validData["userRole"] = upperRole;
             return true;
         }),
     validatorInput,
+    filterValidData,
 ];
 
 export const login = [
+    initValidData,
     body("username")
         .isString()
         .withMessage("Please provide a valid username.")
@@ -45,14 +60,25 @@ export const login = [
         .isLength({ min: 5 })
         .withMessage("Username must be at least 5 characters long.")
         .matches(/^[a-zA-Z0-9]+$/)
-        .withMessage("Username must contain only English letters and numbers."),
+        .withMessage("Username must contain only English letters and numbers.")
+        .bail()
+        .custom((value, { req }) => {
+            req.body.validData["username"] = value.trim().toLowerCase();
+            return true;
+        }),
     body("password")
         .notEmpty()
         .withMessage("Password is required.")
         .bail()
         .isLength({ min: 8 })
-        .withMessage("Password must be at least 8 characters long."),
+        .withMessage("Password must be at least 8 characters long.")
+        .bail()
+        .custom((value, { req }) => {
+            req.body.validData["password"] = value;
+            return true;
+        }),
     validatorInput,
+    filterValidData,
 ];
 
 export const updateUser = [
