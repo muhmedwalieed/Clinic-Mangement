@@ -106,7 +106,11 @@ export const getUsers = async (req: Request, res: Response) => {
     });
 };
 
-export const getUser = async (req: Request, res: Response) => {
+export const getUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     const id = req.params.userId;
     const user = await Users.findUnique({
         where: { id },
@@ -119,7 +123,8 @@ export const getUser = async (req: Request, res: Response) => {
         },
     });
     if (!user) {
-        res.status(404).json("user not found");
+        const e = new CustomError("user not found.", 409);
+        next(e);
         return;
     }
     res.status(200).json({
