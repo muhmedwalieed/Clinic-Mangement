@@ -38,8 +38,7 @@ const login = async (req: Request, res: Response) => {
 };
 
 const getUsers = async (req: Request, res: Response) => {
-    const query = (req as any).validQuery;
-
+    const query = (req as any).prismaQuery;
     const users = await Users.findMany({
         where: query,
         select: {
@@ -71,22 +70,7 @@ const getUsers = async (req: Request, res: Response) => {
 };
 
 const getUser = async (req: Request, res: Response, next: NextFunction) => {
-    const id = req.params.userId;
-    const user = await Users.findUnique({
-        where: { id },
-        select: {
-            id: true,
-            username: true,
-            isActive: true,
-            firstName: true,
-            lastName: true,
-        },
-    });
-    if (!user) {
-        const e = new CustomError("user not found.", 409);
-        next(e);
-        return;
-    }
+    const user = (req as any).user;
     res.status(200).json({
         status: "success",
         statusCode: 200,
@@ -96,15 +80,11 @@ const getUser = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const updateUser = async (req: Request, res: Response) => {
-    const { firstName, lastName } = req.body;
     const id = (req as any).user.id;
     const user = await Users.update({
         where: { id },
-        data: { firstName, lastName },
+        data: req.body,
         select: {
-            id: true,
-            username: true,
-            isActive: true,
             firstName: true,
             lastName: true,
         },

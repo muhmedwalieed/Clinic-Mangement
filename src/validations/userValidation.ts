@@ -1,7 +1,10 @@
 import { body, param, query } from "express-validator";
 import { USER_ROLES } from "@prisma/client";
 import { validatorInput } from "../middlewares/handleInputsErrors";
-import { filterValidData } from "../middlewares/filterValidDataMiddleware";
+import {
+    filterValidData,
+    filterValidQuery,
+} from "../middlewares/filterValidDataMiddleware";
 import { Request, Response, NextFunction } from "express";
 
 const initValidData = (req: Request, res: Response, next: NextFunction) => {
@@ -82,20 +85,75 @@ export const login = [
 ];
 
 export const updateUser = [
+    initValidData,
     body("firstName")
         .optional()
         .isString()
-        .withMessage("Please provide a valid first name."),
+        .withMessage("Please provide a valid first name.")
+        .trim()
+        .notEmpty()
+        .withMessage("first name cannot be empty.")
+        .bail()
+        .isLength({ min: 5 })
+        .withMessage("first name must be at least 5 characters long.")
+        .bail()
+        .matches(/^[a-zA-Z0-9]+$/)
+        .withMessage(
+            "first name must contain only English letters and numbers."
+        )
+        .bail()
+        .custom((value, { req }) => {
+            value = value.trim();
+            value =
+                value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+            req.body.validData["firstName"] = value;
+            return true;
+        }),
     body("lastName")
         .optional()
         .isString()
-        .withMessage("Please provide a valid last name."),
-    body("password")
+        .withMessage("Please provide a valid first name.")
+        .trim()
+        .notEmpty()
+        .withMessage("last name cannot be empty.")
+        .bail()
+        .isLength({ min: 5 })
+        .withMessage("last name must be at least 5 characters long.")
+        .bail()
+        .matches(/^[a-zA-Z0-9]+$/)
+        .withMessage("last name must contain only English letters and numbers.")
+        .bail()
+        .custom((value, { req }) => {
+            value = value.trim();
+            value =
+                value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+            req.body.validData["lastName"] = value;
+            return true;
+        }),
+    validatorInput,
+    filterValidData,
+];
+
+export const changePassword = [
+    initValidData,
+    body("currentPassword")
+        .optional()
+        .isLength({ min: 8 })
+        .withMessage("Invalid current password.")
+        .custom((value, { req }) => {
+            req.body.validData["currentPassword"] = value;
+        }),
+    body("newPassword")
         .optional()
         .isLength({ min: 8 })
         .withMessage(
-            "Password must be at least 8 characters long if provided."
-        ),
+            "new Password must be at least 8 characters long if provided."
+        )
+        .custom((value, { req }) => {
+            req.body.validData["newPassword"] = value;
+        }),
+    validatorInput,
+    filterValidData,
 ];
 
 export const getUsers = [
@@ -116,8 +174,9 @@ export const getUsers = [
                           },
                       }
                     : {};
-            req.validQuery = query;
+            (req as any).query.validQuery = query;
         }),
+    filterValidQuery,
 ];
 
 export const getUser = [
@@ -128,4 +187,16 @@ export const getUser = [
         .trim()
         .notEmpty()
         .withMessage("User ID cannot be empty"),
+    validatorInput,
+];
+
+export const deleteUser = [
+    param("userId")
+        .isString()
+        .withMessage("User ID must be a string")
+        .bail()
+        .trim()
+        .notEmpty()
+        .withMessage("User ID cannot be empty"),
+    validatorInput,
 ];

@@ -4,28 +4,19 @@ import { authorizeRoles } from "../middlewares/authorizeRoles";
 import { USER_ROLES } from "@prisma/client";
 import * as userValidationIN from "../validations/userValidation";
 import * as userHandler from "../handlers/userHandler";
-import { checkCreateUserPermission } from "../middlewares/checkUserPermission";
+import * as userValidationDB from "../validationsDB/userAuthValidatin";
+
 import { globalErrorHandel } from "../middlewares/globalErrorHandel";
 
 const router = Router();
 
-//create user
-router.post(
-    "/register",
-    protect,
-    authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]),
-    checkCreateUserPermission,
-    userValidationIN.createUser,
-    userHandler.createUser
-);
-
-router.post("/login", userValidationIN.login, userHandler.login);
-
+//get users
 router.get(
     "/",
     protect,
     authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]),
-    userValidationIN.getUsers,
+    // userValidationIN.getUsers,
+    userValidationDB.getUsers,
     userHandler.getUsers
 );
 
@@ -34,15 +25,32 @@ router.get(
     protect,
     authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]),
     userValidationIN.getUser,
+    userValidationDB.getUser,
     userHandler.getUser
 );
 
-router.put("/", protect, userHandler.updateUser);
+router.put(
+    "/",
+    protect,
+    userValidationIN.updateUser,
+    userValidationDB.update,
+    userHandler.updateUser
+);
+
+router.put(
+    "/change-password",
+    protect,
+    userValidationIN.changePassword,
+    userValidationDB.changePassword,
+    userHandler.updateUser
+);
 
 router.delete(
     "/:userId",
     protect,
     authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]),
+    userValidationIN.deleteUser,
+    userValidationDB.deleteUser,
     userHandler.deleteUser
 );
 

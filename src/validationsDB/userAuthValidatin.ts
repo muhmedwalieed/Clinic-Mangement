@@ -3,6 +3,7 @@ import { prisma } from "../data/database";
 import CustomError from "../utils/customError";
 import roleHierarchy from "../utils/roleHierarchy";
 import { comparePasswords, hashPassword } from "../utils/hashUtils";
+import { USER_ROLES } from "@prisma/client";
 
 const Users = prisma.users;
 
@@ -65,4 +66,122 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
     next();
 };
 
-export { createUser, login };
+const getUsers = async (req: Request, res: Response, next: NextFunction) => {
+    const currentUserRole = (req as any).user.userRole;
+    if (currentUserRole === USER_ROLES.OWNER) {
+        (req as any).prismaQuery = {};
+    } else {
+        const allowedRoles = Object.keys(roleHierarchy).filter(
+            (role) => roleHierarchy[role] < roleHierarchy[currentUserRole]
+        );
+        (req as any).prismaQuery = { userRole: { in: allowedRoles } };
+    }
+    next();
+};
+
+const getUser = async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.params.userId;
+    const currentUserId = (req as any).user.id;
+    const currentUserRole = (req as any).user.userRole;
+
+    const user = await Users.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            isActive: true,
+            userRole: true,
+        },
+    });
+
+    if (!user) {
+        const message = "user not found";
+        const e = new CustomError(message, 403);
+        next(e);
+        return;
+    }
+    const getUserRole = user?.userRole || "";
+
+    (req as any).user = user;
+
+    if (currentUserId === userId || currentUserRole === USER_ROLES.OWNER) {
+        next();
+        return;
+    } else if (roleHierarchy[currentUserRole] <= roleHierarchy[getUserRole]) {
+        const message = "can't access this user";
+        const e = new CustomError(message, 403);
+        next(e);
+        return;
+    } else {
+        next();
+    }
+};
+
+const update = async (req: Request, res: Response, next: NextFunction) => {
+    const { firstName, lastName } = req.body;
+    const currentUserId = (req as any).user.id;
+    const user = await Users.findUnique({ where: { id: currentUserId } });
+    if (user?.firstName === firstName && user?.lastName === lastName) {
+        res.status(304).json({
+            status: "success",
+            message: "No changes detected. The data is already up to date.",
+        });
+        return;
+    }
+    (req as any).user = user;
+    next();
+};
+
+const changePassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    const { currentPassword, newPassword } = req.body;
+    const currentUserId = (req as any).user.id;
+    const user = await Users.findUnique({ where: { id: currentUserId } });
+    const isValidPassword = await comparePasswords(
+        currentPassword,
+        user?.password || ""
+    );
+    if (!isValidPassword) {
+        const message = "Invalid current password";
+        const e = new CustomError(message, 403);
+        next(e);
+        return;
+    }
+    const passwordHash = await hashPassword(newPassword);
+    req.body = { password: hashPassword };
+    next();
+};
+
+const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+    const currentUserId = (req as any).user.id;
+    const userId = req.params.userId;
+    const user = await Users.findUnique({ where: { id: userId } });
+    const currentUserRole = roleHierarchy[(req as any).user.userRole];
+    const userRole = roleHierarchy[user?.userRole || ""];
+    if (
+        currentUserId !== userId ||
+        userRole >= currentUserRole ||
+        (req as any).user.userRole !== USER_ROLES.OWNER
+    ) {
+        const message = "can't delete this user";
+        const e = new CustomError(message, 403);
+        next(e);
+        return;
+    }
+    next();
+};
+
+export {
+    createUser,
+    login,
+    getUsers,
+    getUser,
+    update,
+    changePassword,
+    deleteUser,
+};
