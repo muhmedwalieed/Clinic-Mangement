@@ -75,7 +75,7 @@ const getUser = async (req: Request, res: Response, next: NextFunction) => {
         status: "success",
         statusCode: 200,
         message: "succes get user information",
-        data: user,
+        data: {user},
     });
 };
 
