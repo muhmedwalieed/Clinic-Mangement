@@ -19,7 +19,7 @@ router.get(
     userValidationDB.getUsers,
     userHandler.getUsers
 );
-
+//get user
 router.get(
     "/:userId",
     protect,
@@ -28,7 +28,7 @@ router.get(
     userValidationDB.getUser,
     userHandler.getUser
 );
-
+//update user
 router.put(
     "/",
     protect,
@@ -36,7 +36,7 @@ router.put(
     userValidationDB.update,
     userHandler.updateUser
 );
-
+//change password
 router.put(
     "/change-password",
     protect,
@@ -44,7 +44,7 @@ router.put(
     userValidationDB.changePassword,
     userHandler.updateUser
 );
-
+//delete user
 router.delete(
     "/:userId",
     protect,

@@ -49,7 +49,7 @@ const getUsers = async (req: Request, res: Response) => {
             userRole: true,
         },
     });
-
+    const count = await Users.count({ where: query });
     const usersCountByRole = await Users.groupBy({
         by: ["userRole"],
         where: query,
@@ -65,7 +65,7 @@ const getUsers = async (req: Request, res: Response) => {
         status: "success",
         statusCode: 200,
         message: "succes get user information",
-        data: { countByRole: formattedCountByRole, users },
+        data: { count, countByRole: formattedCountByRole, users },
     });
 };
 

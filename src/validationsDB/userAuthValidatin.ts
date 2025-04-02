@@ -123,11 +123,13 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
     const { firstName, lastName } = req.body;
     const currentUserId = (req as any).user.id;
     const user = await Users.findUnique({ where: { id: currentUserId } });
-    if (user?.firstName === firstName && user?.lastName === lastName) {
-        res.status(304).json({
-            status: "success",
-            message: "No changes detected. The data is already up to date.",
-        });
+
+    if (
+        (user?.firstName?.toLowerCase() === firstName.toLowerCase() &&
+            (user as any)?.lastName.toLowerCase() === lastName.toLowerCase()) ||
+        (!firstName && !lastName)
+    ) {
+        res.status(304).send();
         return;
     }
     (req as any).user = user;
@@ -153,7 +155,7 @@ const changePassword = async (
         return;
     }
     const passwordHash = await hashPassword(newPassword);
-    req.body = { password: hashPassword };
+    req.body = { password: passwordHash };
     next();
 };
 

@@ -8,6 +8,7 @@ import {
 import { Request, Response, NextFunction } from "express";
 
 const initValidData = (req: Request, res: Response, next: NextFunction) => {
+    req.body ? req.body : {};
     req.body.validData = {};
     next();
 };
@@ -137,20 +138,24 @@ export const updateUser = [
 export const changePassword = [
     initValidData,
     body("currentPassword")
-        .optional()
+        .notEmpty()
+        .withMessage("current Password is required")
         .isLength({ min: 8 })
         .withMessage("Invalid current password.")
         .custom((value, { req }) => {
             req.body.validData["currentPassword"] = value;
+            return true;
         }),
     body("newPassword")
-        .optional()
+        .notEmpty()
+        .withMessage("new Password is required")
         .isLength({ min: 8 })
         .withMessage(
             "new Password must be at least 8 characters long if provided."
         )
         .custom((value, { req }) => {
             req.body.validData["newPassword"] = value;
+            return true;
         }),
     validatorInput,
     filterValidData,
