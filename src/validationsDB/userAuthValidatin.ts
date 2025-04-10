@@ -23,7 +23,14 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
         next(e);
         return;
     }
-    const password = process.env.DEF_USER_PASSWORD || "";
+    if (!process.env.DEF_USER_PASSWORD) {
+        const message = `Invalid server error`;
+        console.error("DEF_USER_PASSWORD not found");
+        const e = new CustomError(message, 409);
+        next(e);
+        return;
+    }
+    const password = process.env.DEF_USER_PASSWORD;
     req.body.password = await hashPassword(password);
     next();
 };

@@ -15,7 +15,7 @@ import * as userValidationDB from "../validationsDB/userAuthValidatin";
 import { globalErrorHandel } from "../middlewares/globalErrorHandel";
 
 const router = Router();
-
+ 
 router.post(
     "/register",
     protect,

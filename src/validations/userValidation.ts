@@ -1,17 +1,7 @@
 import { body, param, query } from "express-validator";
 import { USER_ROLES } from "@prisma/client";
 import { validatorInput } from "../middlewares/handleInputsErrors";
-import {
-    filterValidData,
-    filterValidQuery,
-} from "../middlewares/filterValidDataMiddleware";
-import { Request, Response, NextFunction } from "express";
-
-const initValidData = (req: Request, res: Response, next: NextFunction) => {
-    req.body ? req.body : {};
-    req.body.validData = {};
-    next();
-};
+import { filterValidData, initValidData } from "../middlewares/filterValidDataMiddleware";
 
 export const createUser = [
     initValidData,
@@ -181,7 +171,6 @@ export const getUsers = [
                     : {};
             (req as any).query.validQuery = query;
         }),
-    filterValidQuery,
 ];
 
 export const getUser = [

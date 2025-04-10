@@ -1,4 +1,11 @@
 import { NextFunction, Request, Response } from "express";
+
+const initValidData = (req: Request, res: Response, next: NextFunction) => {
+    req.body ? req.body : {};
+    req.body.validData = {};
+    next();
+};
+
 const filterValidData = async (
     req: Request,
     res: Response,
@@ -9,13 +16,4 @@ const filterValidData = async (
     next();
 };
 
-const filterValidQuery = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
-    const { validQuery } = req.query;
-    (req as any).query = validQuery;
-    next();
-};
-export { filterValidData, filterValidQuery };
+export { filterValidData, initValidData };
