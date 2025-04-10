@@ -15,15 +15,29 @@ enum USER_ROLES {
 }
 
 model Users {
-  id       String     @id @default(uuid())
+  id        String     @id @default(uuid())
   firstName String?
-  lastName String?
-  username String     @unique
-  password String  
-  isActive Boolean? @default(false)
-  userRole USER_ROLES
+  lastName  String?
+  username  String     @unique
+  password  String
+  isActive  Boolean?   @default(false)
+  userRole  USER_ROLES
 
   adminId        String?
-  createdByAdmin Users?  @relation(name: "AdminCreatedNewUser", fields: [adminId], references: [id])
-  createdUsers   Users[] @relation(name: "AdminCreatedNewUser")
+  createdByAdmin Users?    @relation(name: "AdminCreatedNewUser", fields: [adminId], references: [id])
+  createdUsers   Users[]   @relation(name: "AdminCreatedNewUser")
+
+  clinics        Clinics[] @relation(name: "DoctorOwner")
+  clinicsCreatedByAdmin        Clinics[] @relation(name: "AdminCreatedNewClinic")
+}
+
+model Clinics {
+  id              String @id @default(uuid())
+  name            String
+  consultationFee Float?
+  followUpFee    Float?
+  doctorId        String
+  doctorOwner     Users  @relation(name: "DoctorOwner",fields: [doctorId], references: [id])
+  adminId        String
+  createdByAdmin Users    @relation(name: "AdminCreatedNewClinic", fields: [adminId], references: [id])
 }
