@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Clinics" ADD COLUMN     "EXPIRATION_DAYS" INTEGER;

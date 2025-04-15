@@ -1,13 +1,41 @@
-import { body, param } from "express-validator";
+import { body, param, query } from "express-validator";
 import { validatorInput } from "../middlewares/handleInputsErrors";
-import { Request, Response, NextFunction } from "express";
-import { filterValidData } from "../middlewares/filterValidDataMiddleware";
+import { filterValidData, initValidData, initValidQuery } from "../middlewares/filterValidDataMiddleware";
 
-const initValidData = (req: Request, res: Response, next: NextFunction) => {
-    req.body ? req.body : {};
-    req.body.validData = {};
-    next();
-};
+const getClinics = [
+    initValidQuery,
+    query("adminId")
+        .optional()
+        .isString()
+        .withMessage("Please provide a valid admin ID.")
+        .bail()
+        .trim()
+        .notEmpty()
+        .withMessage("Admin ID cannot be empty.")
+        .bail()
+        .isLength({ min: 36, max: 36 })
+        .withMessage("Invalid Admin ID")
+        .custom((val, { req }) => {
+            req.prismaQuery["adminId"] = val;
+            return true;
+        }),
+    query("doctorId")
+        .optional()
+        .isString()
+        .withMessage("Please provide a valid doctor ID.")
+        .bail()
+        .trim()
+        .notEmpty()
+        .withMessage("Doctor ID cannot be empty.")
+        .bail()
+        .isLength({ min: 36, max: 36 })
+        .withMessage("Invalid Doctor ID")
+        .custom((val, { req }) => {
+            req.prismaQuery["doctorId"] = val;
+            return true;
+        }),
+    validatorInput,
+];
 
 const getClinic = [
     param("clinicId")
@@ -24,7 +52,7 @@ const getClinic = [
 
 const createClinic = [
     initValidData,
-    body("name")
+    body("clinic.name")
         .isString()
         .withMessage("Please provide a valid clinic name.")
         .bail()
@@ -39,37 +67,12 @@ const createClinic = [
             req.body.validData["name"] = value.trim().toLowerCase();
             return true;
         }),
-    body("doctorId")
-        .isString()
-        .withMessage("Please provide a valid doctor ID.")
-        .bail()
-        .trim()
-        .notEmpty()
-        .withMessage("Doctor ID cannot be empty.")
-        .bail()
-        .isLength({ min: 36, max: 36 })
-        .withMessage("Invalid Doctor ID")
-        .bail()
-        .custom((value, { req }) => {
-            req.body.validData["doctorId"] = value.trim().toLowerCase();
-            return true;
-        }),
     validatorInput,
     filterValidData,
 ];
 
 const updateClinic = [
     initValidData,
-    param("clinicId")
-        .isString()
-        .withMessage("Please provide a valid clinic ID.")
-        .bail()
-        .trim()
-        .notEmpty()
-        .withMessage("Clinic ID cannot be empty.")
-        .bail()
-        .isLength({ min: 36, max: 36 })
-        .withMessage("Invalid Clinic ID"),
     body("name")
         .optional()
         .isString()
@@ -102,6 +105,14 @@ const updateClinic = [
             req.body.validData["followUpFee"] = value;
             return true;
         }),
+    body("EXPIRATION_DAYS")
+        .optional()
+        .isFloat()
+        .withMessage("Invalid EXPIRATION_DAYS")
+        .custom((value, { req }) => {
+            req.body.validData["EXPIRATION_DAYS"] = value;
+            return true;
+        }),
     validatorInput,
     filterValidData,
 ];
@@ -119,4 +130,4 @@ const deleteClinic = [
         .withMessage("Invalid Clinic ID"),
 ];
 
-export { getClinic, createClinic, updateClinic, deleteClinic };
+export { getClinics, getClinic, createClinic, updateClinic, deleteClinic };

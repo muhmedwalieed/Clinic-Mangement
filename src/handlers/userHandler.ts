@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { createJWT } from "../utils/jwtUtils";
 import { comparePasswords, hashPassword } from "../utils/hashUtils";
 import CustomError from "../utils/customError";
+import { getUserWithFormat } from "../utils/getUser";
 
 const Users = prisma.users;
 
@@ -18,54 +19,31 @@ const createUser = async (req: Request, res: Response) => {
 };
 
 const login = async (req: Request, res: Response) => {
-    const user = (req as any).user;
-    const token = createJWT(user);
-    const data = {
-        statusCode: 200,
-        message: "user login success",
-        user: {
-            id: user.id,
-            username: user.username,
-            isActive: user.isActive,
-            userRole: user.userRole,
-        },
-        token,
-    };
+    const user = req.user;
+    const token = createJWT(user!);
     res.json({
         status: "success",
-        data,
+        statusCode: 200,
+        message: "user login success",
+        data: {
+            user,
+            token,
+        },
     });
 };
 
 const getUsers = async (req: Request, res: Response) => {
-    const query = (req as any).prismaQuery;
+    const query = req.prismaQuery;
     const users = await Users.findMany({
         where: query,
-        select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-            userRole: true,
-        },
     });
-    const count = await Users.count({ where: query });
-    const usersCountByRole = await Users.groupBy({
-        by: ["userRole"],
-        where: query,
-        _count: {
-            id: true,
-        },
-    });
-    const formattedCountByRole = usersCountByRole.map((item) => ({
-        userRole: item.userRole,
-        count: item._count.id,
-    }));
+    const usersWithFormat = users.map(getUserWithFormat);
+    const count = users.length;
     res.status(200).json({
         status: "success",
         statusCode: 200,
-        message: "succes get user information",
-        data: { count, countByRole: formattedCountByRole, users },
+        message: "succes get users information",
+        data: { count, users: usersWithFormat },
     });
 };
 
@@ -75,7 +53,7 @@ const getUser = async (req: Request, res: Response, next: NextFunction) => {
         status: "success",
         statusCode: 200,
         message: "succes get user information",
-        data: {user},
+        data: { user },
     });
 };
 
@@ -87,6 +65,7 @@ const updateUser = async (req: Request, res: Response) => {
         select: {
             firstName: true,
             lastName: true,
+            username: true,
         },
     });
     res.status(200).json({
@@ -118,12 +97,11 @@ const deleteUser = async (req: Request, res: Response) => {
     });
 };
 
-export {
-    createUser,
-    login,
-    getUsers,
-    getUser,
-    updateUser,
-    updatePassword,
-    deleteUser,
+const checkUser = async (req: Request, res: Response) => {
+    const user = await Users.findUnique({ where: { username: req.body.username } });
+    res.json({
+        exists: !!user,
+    });
 };
+
+export { createUser, login, getUsers, getUser, updateUser, updatePassword, deleteUser, checkUser };

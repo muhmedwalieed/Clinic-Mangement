@@ -1,9 +1,15 @@
 {
     "compilerOptions": {
-        "sourceMap": true,
-        "outDir": "dist",
+        "target": "esnext",
+        "module": "commonjs",
+        "outDir": "./dist",
+        "rootDir": "./src",
         "strict": true,
-        "lib": ["esnext"],
-        "esModuleInterop": true
-    }
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "typeRoots": ["./node_modules/@types", "./src/types"]
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules"]
 }

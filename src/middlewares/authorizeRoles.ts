@@ -4,7 +4,7 @@ import CustomError from "../utils/customError";
 export const authorizeRoles = (allowedRoles: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const userRole = (req as any).user.userRole.toUpperCase();
+            const userRole = req.user?.userRole.toUpperCase();
             const hasPermission = allowedRoles.some(
                 (role) => role.toUpperCase() === userRole
             );

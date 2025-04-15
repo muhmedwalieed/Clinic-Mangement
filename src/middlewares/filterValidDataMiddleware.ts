@@ -6,14 +6,16 @@ const initValidData = (req: Request, res: Response, next: NextFunction) => {
     next();
 };
 
-const filterValidData = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+const filterValidData = async (req: Request, res: Response, next: NextFunction) => {
     const { validData } = req.body;
     req.body = validData;
     next();
 };
 
-export { filterValidData, initValidData };
+const initValidQuery = (req: Request, res: Response, next: NextFunction) => {
+    req.prismaQuery ? req.prismaQuery : {};
+    req.prismaQuery = {};
+    next();
+};
+
+export { filterValidData, initValidData,initValidQuery };
