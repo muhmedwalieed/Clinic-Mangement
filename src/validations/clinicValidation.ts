@@ -4,6 +4,21 @@ import { filterValidData, initValidData, initValidQuery } from "../middlewares/f
 
 const getClinics = [
     initValidQuery,
+    param("userId")
+        .optional()
+        .isString()
+        .withMessage("Please provide a valid user ID.")
+        .bail()
+        .trim()
+        .notEmpty()
+        .withMessage("User ID cannot be empty.")
+        .bail()
+        .isLength({ min: 36, max: 36 })
+        .withMessage("Invalid User ID")
+        .custom((val, { req }) => {
+            req.prismaQuery["doctorId"] = val;
+            return true;
+        }),
     query("adminId")
         .optional()
         .isString()

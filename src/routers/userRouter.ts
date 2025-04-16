@@ -4,20 +4,14 @@ import { USER_ROLES } from "@prisma/client";
 import * as userValidationIN from "../validations/userValidation";
 import * as userHandler from "../handlers/userHandler";
 import * as userValidationDB from "../validationsDB/userAuthValidatin";
-
+import clinicRouter from "./clinicRouter";
 import { globalErrorHandel } from "../middlewares/globalErrorHandel";
 import { deleteUserRelations } from "../middlewares/deleteUserRelations";
 import { checkUserProfile } from "../middlewares/ValidUser";
 
 const router = Router();
-
-router.post(
-    "/check-username",
-    checkUserProfile,
-    authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]),
-    userValidationIN.checkUser,
-    userHandler.checkUser
-);
+///api/users/userId/clinic
+router.use("/:userId/clinics", clinicRouter);
 
 //get users
 router.get(
@@ -28,17 +22,22 @@ router.get(
     userValidationDB.getUsers,
     userHandler.getUsers
 );
+//info مؤقت
+router.get("/info", checkUserProfile, userValidationDB.getUser, userHandler.getUser);
 //get user
-router.get(
-    "/:userId",
+router.get("/:userId", checkUserProfile, userValidationIN.getUser, userValidationDB.getUser, userHandler.getUser);
+
+//update user
+router.put("/:userId", userValidationIN.updateUser, userValidationDB.update, userHandler.updateUser);
+
+router.post(
+    "/check-username",
     checkUserProfile,
     authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]),
-    userValidationIN.getUser,
-    userValidationDB.getUser,
-    userHandler.getUser
+    userValidationIN.checkUser,
+    userHandler.checkUser
 );
-//update user
-router.put("/", userValidationIN.updateUser, userValidationDB.update, userHandler.updateUser);
+
 //change password
 router.put(
     "/change-password",

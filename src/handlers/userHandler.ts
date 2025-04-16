@@ -4,40 +4,18 @@ import { createJWT } from "../utils/jwtUtils";
 import { comparePasswords, hashPassword } from "../utils/hashUtils";
 import CustomError from "../utils/customError";
 import { getUserWithFormat } from "../utils/getUser";
+import { sortUsersByRole } from "../utils/sortedUsers";
 
 const Users = prisma.users;
-
-const createUser = async (req: Request, res: Response) => {
-    const user = await Users.create({
-        data: req.body,
-    });
-    res.json({
-        status: "success",
-        statusCode: 200,
-        message: "user created successfully",
-    });
-};
-
-const login = async (req: Request, res: Response) => {
-    const user = req.user;
-    const token = createJWT(user!);
-    res.json({
-        status: "success",
-        statusCode: 200,
-        message: "user login success",
-        data: {
-            user,
-            token,
-        },
-    });
-};
 
 const getUsers = async (req: Request, res: Response) => {
     const query = req.prismaQuery;
     const users = await Users.findMany({
         where: query,
     });
-    const usersWithFormat = users.map(getUserWithFormat);
+
+    const sortedUsers = sortUsersByRole(users)
+    const usersWithFormat = sortedUsers.map(getUserWithFormat);
     const count = users.length;
     res.status(200).json({
         status: "success",
@@ -48,7 +26,7 @@ const getUsers = async (req: Request, res: Response) => {
 };
 
 const getUser = async (req: Request, res: Response, next: NextFunction) => {
-    const user = (req as any).user;
+    const user = req.user;
     res.status(200).json({
         status: "success",
         statusCode: 200,
@@ -58,7 +36,7 @@ const getUser = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const updateUser = async (req: Request, res: Response) => {
-    const id = (req as any).user.id;
+    const id = req.newUser!.id;
     const user = await Users.update({
         where: { id },
         data: req.body,
@@ -74,7 +52,6 @@ const updateUser = async (req: Request, res: Response) => {
         message: "succes update user information",
         data: user,
     });
-    res.json({ data: user });
 };
 
 const updatePassword = async (req: Request, res: Response) => {
@@ -104,4 +81,4 @@ const checkUser = async (req: Request, res: Response) => {
     });
 };
 
-export { createUser, login, getUsers, getUser, updateUser, updatePassword, deleteUser, checkUser };
+export { getUsers, getUser, updateUser, updatePassword, deleteUser, checkUser };

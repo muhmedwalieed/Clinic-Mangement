@@ -10,7 +10,7 @@ import * as userValidationDB from "../validationsDB/userAuthValidatin";
 import { createUser } from "../middlewares/createUser";
 import { isHaveClinic } from "../middlewares/DoctorHaveClinic";
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 router.get("/", authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]), clinicValidationIN.getClinics, getClinics);
 router.get("/current", authorizeRoles([USER_ROLES.DOCTOR]), isHaveClinic, getClinic);
@@ -23,15 +23,15 @@ router.get(
     getClinic
 );
 
-router.post(
-    "/",
-    authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]),
-    userValidationIN.createUser,
-    userValidationDB.createUser,
-    createUser(USER_ROLES.DOCTOR),
-    clinicValidationIN.createClinic,
-    createClinic
-);
+// router.post(
+//     "/",
+//     authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]),
+//     userValidationIN.createUser,
+//     userValidationDB.createUser,
+//     createUser(USER_ROLES.DOCTOR),
+//     clinicValidationIN.createClinic,
+//     createClinic
+// );
 
 router.put(
     "/",

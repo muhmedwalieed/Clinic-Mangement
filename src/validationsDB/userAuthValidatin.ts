@@ -8,130 +8,86 @@ import { getUserWithFormat } from "../utils/getUser";
 
 const Users = prisma.users;
 
-const validUser = async (id: string) => {
-    const user = await Users.findUnique({ where: { id }, include: { clinics: true } });
-    if (!user) {
-        throw new Error("pls login again");
-    }
-    return user;
-};
-
-const createUser = async (req: Request, res: Response, next: NextFunction) => {
-    const { username, userRole } = req.body.validData;
-    const currentUserRole = req.user?.userRole;
-    const user = await Users.findUnique({ where: { username } });
-    if (user) {
-        const message = "Username already exists. Please choose another one.";
-        const e = new CustomError(message, 409);
-        next(e);
-        return;
-    }
-    if (roleHierarchy[userRole] >= roleHierarchy[currentUserRole!]) {
-        const message = `You are not allowed to create a user with a higher role than your own.`;
-        const e = new CustomError(message, 409);
-        next(e);
-        return;
-    }
-    next();
-};
-
-const login = async (req: Request, res: Response, next: NextFunction) => {
-    const { username, password } = req.body;
-
-    const isValidUsername = await Users.findUnique({
-        where: { username },
-        include: {
-            clinics: true,
-        },
-    });
-
-    if (!isValidUsername) {
-        const message = "Invalid username or password";
-        const e = new CustomError(message, 409);
-        next(e);
-        return;
-    }
-
-    const isValidPassword = await comparePasswords(password, isValidUsername.password);
-
-    if (!isValidPassword) {
-        const message = "Invalid username or password";
-        const e = new CustomError(message, 409);
-        next(e);
-        return;
-    }
-    req.user = getUserWithFormat(isValidUsername);
-    next();
+const canAccess = (targetUserRole: string, actingUserRole: string) => {
+    return roleHierarchy[actingUserRole] > roleHierarchy[targetUserRole] || actingUserRole === USER_ROLES.OWNER;
 };
 
 const getUsers = async (req: Request, res: Response, next: NextFunction) => {
-    const userRole = req.prismaQuery?.userRole;
-    const currentUserRole = req.user?.userRole;
-    if (userRole && req.prismaQuery && currentUserRole) {
-        if (currentUserRole === USER_ROLES.OWNER) {
-            req.prismaQuery.userRole = { in: [userRole] };
-        } else if (roleHierarchy[userRole] < roleHierarchy[currentUserRole]) {
-            req.prismaQuery.userRole = { in: [userRole] };
-        } else {
-            const allowedRoles = Object.keys(roleHierarchy).filter(
-                (role) => roleHierarchy[role] < roleHierarchy[currentUserRole]
-            );
+    const query = req.prismaQuery!;
+    const userRole = query.userRole;
+    const currentUserRole = req.user?.userRole!;
 
-            req.prismaQuery.userRole = { in: allowedRoles };
+    if (query.userRole) {
+        const havePermission = canAccess(userRole, currentUserRole);
+        if (!havePermission) {
+            const permissionError = new CustomError("Access denied: insufficient permissions.", 403, {
+                permission: "You are not allowed to access users with this role.",
+            });
+            return next(permissionError);
+        } else {
+            query.userRole = { in: [userRole] };
         }
+    } else {
+        const roles = [USER_ROLES.OWNER, USER_ROLES.ADMIN, USER_ROLES.DOCTOR, USER_ROLES.NURSE];
+        const currentRole = req.user!.userRole;
+        const accessibleRoles = roles.filter((targetRole) => canAccess(targetRole, currentRole));
+        query.userRole = { in: accessibleRoles };
     }
-    if (req.prismaQuery?.username) {
-        const user = await Users.findUnique({ where: { username: req.prismaQuery?.username }, select: { id: true } });
-        if (!user) {
-            const message = "Invalid data in the input field.";
-            const e = new CustomError(message, 400,{username:"username not found"});
-            return next(e);
-        }
-        req.prismaQuery["adminId"] = user?.id;
-        delete req.prismaQuery?.username;
+
+    if (query.username) {
+        query.username = {
+            startsWith: query.username,
+            mode: "insensitive",
+        };
     }
-    console.log(req.prismaQuery);
 
     next();
 };
 
 const getUser = async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.params.userId;
-    const currentUserId = req.user?.id;
-    const currentUserRole = req.user?.userRole;
+    const currentUser = req.user!;
+    const currentUserId = currentUser.id;
+    const currentUserRole = currentUser.userRole;
+    const userId = req.params.userId || currentUser.id;
 
     const user = await Users.findUnique({
         where: { id: userId },
-        include: {
-            clinics: true,
-        },
     });
 
     if (!user) {
         const message = "user not found";
-        const e = new CustomError(message, 403);
-        next(e);
-        return;
-    }
-    const getUserRole = user?.userRole;
-
-    req.user = getUserWithFormat(user);
-
-    if (currentUserId === userId || currentUserRole === USER_ROLES.OWNER) {
-        return next();
-    } else if (roleHierarchy[currentUserRole!] <= roleHierarchy[getUserRole]) {
-        const message = "can't access this user";
-        const e = new CustomError(message, 403);
+        const e = new CustomError(message, 404);
         return next(e);
+    }
+
+    const userRole = user.userRole;
+    const havePermission = canAccess(userRole, currentUserRole);
+    if (currentUserId === userId || havePermission) {
+        req.user = getUserWithFormat(user);
+        return next();
     } else {
-        next();
+        const permissionError = new CustomError("Access denied: insufficient permissions.", 403, {
+            permission: "You are not allowed to access this user",
+        });
+        return next(permissionError);
     }
 };
 
 const update = async (req: Request, res: Response, next: NextFunction) => {
     const { firstName, lastName } = req.body;
-    const currentUserId = req.user?.id;
-    const user = await validUser(currentUserId!);
+    let user = req.user!;
+
+    if (req.params.userId) {
+        const isValidUser = await Users.findUnique({ where: { id: req.params.userId } });
+
+        if (!isValidUser) {
+            const message = "user not found";
+            const e = new CustomError(message, 404);
+            return next(e);
+        }
+        user = isValidUser;
+    }
+
     if (
         (user.firstName?.toLowerCase() === firstName.toLowerCase() &&
             user.lastName?.toLowerCase() === lastName.toLowerCase()) ||
@@ -140,23 +96,31 @@ const update = async (req: Request, res: Response, next: NextFunction) => {
         res.status(304).send();
         return;
     }
-    req.user = getUserWithFormat(user);
+    req.newUser = user;
+
     next();
 };
 
 const changePassword = async (req: Request, res: Response, next: NextFunction) => {
     const { currentPassword, newPassword } = req.body;
-    const currentUserId = req.user?.id;
-    const user = await validUser(currentUserId!);
-    const isValidPassword = await comparePasswords(currentPassword, user?.password!);
+    const currentUser = req.user!;
+    const currentUserId = currentUser.id;
+    const user = await Users.findUnique({ where: { id: currentUserId } });
+    if (!user) {
+        const e = new CustomError("Expired token. Please log in again to continue.", 401);
+        return next(e);
+    }
+
+    const isValidPassword = await comparePasswords(currentPassword, user.password);
     if (!isValidPassword) {
         const message = "Invalid current password";
         const e = new CustomError(message, 403);
-        next(e);
-        return;
+        return next(e);
     }
+
     const passwordHash = await hashPassword(newPassword);
     req.body = { password: passwordHash };
+    
     next();
 };
 
@@ -179,4 +143,4 @@ const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
     next();
 };
 
-export { createUser, login, getUsers, getUser, update, changePassword, deleteUser };
+export { getUsers, getUser, update, changePassword, deleteUser };

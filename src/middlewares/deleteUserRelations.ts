@@ -9,7 +9,6 @@ const Patients = prisma.patients;
 export const deleteUserRelations = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const clinic = req.clinic;
-        const user = req.newUser;
         if (!clinic) {
             return next();
         }

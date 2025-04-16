@@ -1,5 +1,5 @@
 import userRouter from "./routers/userRouter";
-import userAuth from "./routers/authUserRouter";
+import userAuth from "./routers/userAuthRouter";
 import clinicRouter from "./routers/clinicRouter";
 import server from "./server";
 import consultationRouter from "./routers/consultationRouter";

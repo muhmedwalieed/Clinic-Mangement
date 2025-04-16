@@ -3,9 +3,24 @@ import { USER_ROLES } from "@prisma/client";
 import { validatorInput } from "../middlewares/handleInputsErrors";
 import { filterValidData, initValidData, initValidQuery } from "../middlewares/filterValidDataMiddleware";
 
-export const createUser = [
-    initValidData,
-    body("user.username")
+const roles = [USER_ROLES.OWNER, USER_ROLES.ADMIN, USER_ROLES.DOCTOR, USER_ROLES.NURSE];
+
+export const getUsers = [
+    initValidQuery,
+    query("userRole")
+        .optional()
+        .isString()
+        .withMessage("Invalid Role")
+        .bail()
+        .isIn([...roles.map((role) => role.toLowerCase()), ...roles.map((role) => role.toUpperCase())])
+        .withMessage("Invalid Role")
+        .bail()
+        .custom((val, { req }) => {
+            req.prismaQuery["userRole"] = val.toUpperCase();
+            return true;
+        }),
+    query("username")
+        .optional()
         .isString()
         .withMessage("Please provide a valid username.")
         .bail()
@@ -13,55 +28,43 @@ export const createUser = [
         .notEmpty()
         .withMessage("Username cannot be empty.")
         .bail()
-        .isLength({ min: 5 })
-        .withMessage("Username must be at least 5 characters long.")
-        .bail()
         .matches(/^[a-zA-Z0-9]+$/)
         .withMessage("Username must contain only English letters and numbers.")
         .bail()
         .custom((value, { req }) => {
-            req.body.validData["username"] = value.trim().toLowerCase();
+            req.prismaQuery["username"] = value.trim().toLowerCase();
             return true;
         }),
     validatorInput,
 ];
 
-export const login = [
-    initValidData,
-    body("username")
+export const getUser = [
+    param("userId")
         .isString()
-        .withMessage("Please provide a valid username.")
+        .withMessage("Please provide a valid user ID.")
         .bail()
         .trim()
         .notEmpty()
-        .withMessage("Username cannot be empty.")
+        .withMessage("User ID cannot be empty.")
         .bail()
-        .isLength({ min: 5 })
-        .withMessage("Username must be at least 5 characters long.")
-        .matches(/^[a-zA-Z0-9]+$/)
-        .withMessage("Username must contain only English letters and numbers.")
-        .bail()
-        .custom((value, { req }) => {
-            req.body.validData["username"] = value.trim().toLowerCase();
-            return true;
-        }),
-    body("password")
-        .notEmpty()
-        .withMessage("Password is required.")
-        .bail()
-        .isLength({ min: 8 })
-        .withMessage("Password must be at least 8 characters long.")
-        .bail()
-        .custom((value, { req }) => {
-            req.body.validData["password"] = value;
-            return true;
-        }),
+        .isLength({ min: 36, max: 36 })
+        .withMessage("Invalid User ID"),
     validatorInput,
-    filterValidData,
 ];
 
 export const updateUser = [
     initValidData,
+    param("userId")
+        .optional()
+        .isString()
+        .withMessage("Please provide a valid user ID.")
+        .bail()
+        .trim()
+        .notEmpty()
+        .withMessage("User ID cannot be empty.")
+        .bail()
+        .isLength({ min: 36, max: 36 })
+        .withMessage("Invalid User ID"),
     body("firstName")
         .optional()
         .isString()
@@ -128,61 +131,6 @@ export const changePassword = [
         }),
     validatorInput,
     filterValidData,
-];
-
-export const getUsers = [
-    initValidQuery,
-    query("userRole")
-        .optional()
-        .isString()
-        .withMessage("Invalid Role")
-        .bail()
-        .isIn([
-            USER_ROLES.DOCTOR.toLowerCase(),
-            USER_ROLES.OWNER.toLowerCase(),
-            USER_ROLES.ADMIN.toLowerCase(),
-            USER_ROLES.NURSE.toLowerCase(),
-        ])
-        .withMessage("Invalid Role")
-        .bail()
-        .custom((val, { req }) => {
-            req.prismaQuery["userRole"] = val.toUpperCase();
-            return true;
-        }),
-    query("username")
-        .optional()
-        .isString()
-        .withMessage("Please provide a valid username.")
-        .bail()
-        .trim()
-        .notEmpty()
-        .withMessage("Username cannot be empty.")
-        .bail()
-        .isLength({ min: 5 })
-        .withMessage("Username must be at least 5 characters long.")
-        .bail()
-        .matches(/^[a-zA-Z0-9]+$/)
-        .withMessage("Username must contain only English letters and numbers.")
-        .bail()
-        .custom((value, { req }) => {
-            req.prismaQuery["username"] = value.trim().toLowerCase();
-            return true;
-        }),
-    validatorInput,
-];
-
-export const getUser = [
-    param("userId")
-        .isString()
-        .withMessage("Please provide a valid user ID.")
-        .bail()
-        .trim()
-        .notEmpty()
-        .withMessage("User ID cannot be empty.")
-        .bail()
-        .isLength({ min: 36, max: 36 })
-        .withMessage("Invalid User ID"),
-    validatorInput,
 ];
 
 export const deleteUser = [

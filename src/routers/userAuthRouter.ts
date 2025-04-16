@@ -6,18 +6,18 @@ import { protect } from "../utils/jwtUtils";
 
 import { authorizeRoles } from "../middlewares/authorizeRoles";
 
-import * as userValidationIN from "../validations/userValidation";
+import * as userValidationIN from "../validations/userAuthValidation";
 
-import * as userHandler from "../handlers/userHandler";
+import * as userHandler from "../handlers/userAuthHandler";
 
-import * as userValidationDB from "../validationsDB/userAuthValidatin";
+import * as userValidationDB from "../validationsDB/userAuthValidation";
 
 import { globalErrorHandel } from "../middlewares/globalErrorHandel";
 
 const router = Router();
 
 router.post(
-    "/register",
+    "/",
     protect,
     authorizeRoles([USER_ROLES.OWNER, USER_ROLES.ADMIN]),
     userValidationIN.createUser,

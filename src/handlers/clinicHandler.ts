@@ -20,6 +20,7 @@ const getClinics = async (req: Request, res: Response) => {
             doctorOwner: true,
         },
     });
+    
     const clinicsWithFormat = clinics.map(getClinicWithFormat);
     res.status(200).json({
         status: "success",
