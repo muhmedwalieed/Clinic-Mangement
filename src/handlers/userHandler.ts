@@ -1,7 +1,6 @@
 import { prisma } from "../data/database";
 import { NextFunction, Request, Response } from "express";
-import { createJWT } from "../utils/jwtUtils";
-import { comparePasswords, hashPassword } from "../utils/hashUtils";
+import { hashPassword } from "../utils/hashUtils";
 import CustomError from "../utils/customError";
 import { getUserWithFormat } from "../utils/getUser";
 import { sortUsersByRole } from "../utils/sortedUsers";

@@ -3,7 +3,7 @@ import { USER_ROLES } from "@prisma/client";
 import { validatorInput } from "../middlewares/handleInputsErrors";
 import { filterValidData, initValidData, initValidQuery } from "../middlewares/filterValidDataMiddleware";
 
-const roles = [USER_ROLES.OWNER, USER_ROLES.ADMIN, USER_ROLES.DOCTOR, USER_ROLES.NURSE];
+const roles = [USER_ROLES.ADMIN, USER_ROLES.DOCTOR, USER_ROLES.NURSE];
 
 export const getUsers = [
     initValidQuery,

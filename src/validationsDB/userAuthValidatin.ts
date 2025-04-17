@@ -28,7 +28,7 @@ const getUsers = async (req: Request, res: Response, next: NextFunction) => {
             query.userRole = { in: [userRole] };
         }
     } else {
-        const roles = [USER_ROLES.OWNER, USER_ROLES.ADMIN, USER_ROLES.DOCTOR, USER_ROLES.NURSE];
+        const roles = [USER_ROLES.ADMIN, USER_ROLES.DOCTOR, USER_ROLES.NURSE];
         const currentRole = req.user!.userRole;
         const accessibleRoles = roles.filter((targetRole) => canAccess(targetRole, currentRole));
         query.userRole = { in: accessibleRoles };
@@ -120,7 +120,7 @@ const changePassword = async (req: Request, res: Response, next: NextFunction) =
 
     const passwordHash = await hashPassword(newPassword);
     req.body = { password: passwordHash };
-    
+
     next();
 };
 
